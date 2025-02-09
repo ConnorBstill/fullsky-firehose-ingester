@@ -1,0 +1,53 @@
+{
+  "lexicon": 1,
+  "id": "com.fullsky.post",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["body", "createdAt"],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxGraphemes": 30000,
+            "maxLength": 30000
+          },
+          "embed": {
+            "type": "union",
+            "refs": [
+              "app.bsky.embed.images",
+              "app.bsky.embed.video",
+              "app.bsky.embed.external",
+              "app.bsky.embed.record",
+              "app.bsky.embed.recordWithMedia"
+            ]
+          },
+          "langs": {
+            "type": "array",
+            "description": "Indicates human language of post primary text content.",
+            "maxLength": 3,
+            "items": { "type": "string", "format": "language" }
+          },
+          "labels": {
+            "type": "union",
+            "description": "Self-label values for this post. Effectively content warnings.",
+            "refs": ["com.atproto.label.defs#selfLabels"]
+          },
+          "tags": {
+            "type": "array",
+            "description": "Additional hashtags, in addition to any included in post text and facets.",
+            "maxLength": 8,
+            "items": { "type": "string", "maxLength": 640, "maxGraphemes": 64 }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}
