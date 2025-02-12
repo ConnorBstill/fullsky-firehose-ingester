@@ -10,6 +10,9 @@ import { eq } from "drizzle-orm";
 
 export function createIngester(db: VercelPgDatabase, idResolver: IdResolver) {
   const logger = pino({ name: "firehose ingestion" });
+
+  console.log("Tapping into Firehose");
+
   return new Firehose({
     idResolver,
     handleEvent: async (evt: Event) => {

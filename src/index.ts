@@ -9,5 +9,4 @@ const start = () => {
   ingester.start();
 };
 
-console.log("Server start on ", 8080);
 start();
