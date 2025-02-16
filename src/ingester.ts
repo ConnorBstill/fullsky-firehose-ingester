@@ -1,14 +1,18 @@
 import pino from "pino";
-import { VercelPgDatabase } from "drizzle-orm/vercel-postgres";
+import { nanoid } from "nanoid";
 
 import { IdResolver } from "@atproto/identity";
 import { Firehose, Event } from "@atproto/sync";
 
-import { post } from "./db/schema";
+import * as schema from "./db/schema";
 import * as Post from "./lexicon/types/com/fullsky/post";
 import { eq } from "drizzle-orm";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-export function createIngester(db: VercelPgDatabase, idResolver: IdResolver) {
+export function createIngester(
+  db: NodePgDatabase<typeof schema>,
+  idResolver: IdResolver,
+) {
   const logger = pino({ name: "firehose ingestion" });
 
   console.log("Tapping into Firehose");
@@ -28,28 +32,46 @@ export function createIngester(db: VercelPgDatabase, idResolver: IdResolver) {
           Post.isRecord(record) &&
           Post.validateRecord(record).success
         ) {
-          await db.insert(post).values({
-            uri: evt.uri.toString(),
-            authorDid: evt.did,
-            body: record.body,
-            createdAt: record.createdAt,
-            indexedAt: now.toISOString(),
-          });
-          // For when we maybe allow editing posts in the future
-          // .onConflictDoUpdate({
-          //   target: post.uri,
-          //   set: {
-          //     body: record.body,
-          //     indexedAt: now.toISOString(),
-          //   }
-          // })
+          let uuid;
+
+          while (!uuid) {
+            const nanoId = nanoid(6);
+
+            const uuidExists = await db.query.post.findFirst({
+              where: (data, { eq }) => eq(data.uuid, nanoId),
+            });
+
+            if (!uuidExists) {
+              uuid = nanoId;
+            }
+          }
+
+          await db
+            .insert(schema.post)
+            .values({
+              uri: evt.uri.toString(),
+              uuid,
+              authorDid: evt.did,
+              body: record.body,
+              createdAt: record.createdAt,
+              indexedAt: now.toISOString(),
+            })
+            .onConflictDoUpdate({
+              target: schema.post.uri,
+              set: {
+                body: record.body,
+                indexedAt: now.toISOString(),
+              },
+            });
         }
       } else if (
         evt.event === "delete" &&
         evt.collection === "com.fullsky.post"
       ) {
         // Remove the status from our SQLite
-        await db.delete(post).where(eq(post.uri, evt.uri.toString()));
+        await db
+          .delete(schema.post)
+          .where(eq(schema.post.uri, evt.uri.toString()));
       }
     },
     onError: (err: Error) => {

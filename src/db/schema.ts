@@ -23,7 +23,8 @@ export const authSession = createTable("auth_session", {
 });
 
 export const post = createTable("post", {
-  uri: varchar("uri", { length: 255 }).primaryKey().notNull(),
+  uuid: varchar("uuid", { length: 7 }).primaryKey().notNull(),
+  uri: varchar("uri", { length: 255 }).notNull(),
   authorDid: varchar("author_did").notNull(),
   body: varchar("body").notNull(),
   createdAt: varchar("created_at").notNull(),
