@@ -4,10 +4,11 @@ import { nanoid } from "nanoid";
 import { IdResolver } from "@atproto/identity";
 import { Firehose, Event } from "@atproto/sync";
 
-import * as schema from "./db/schema";
-import * as Post from "./lexicon/types/com/fullsky/post";
 import { eq } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
+
+import * as schema from "./db/schema";
+import * as Post from "./lexicon/types/com/fullsky/post";
 
 export function createIngester(
   db: NodePgDatabase<typeof schema>,
@@ -46,16 +47,19 @@ export function createIngester(
             }
           }
 
+          const newPost: schema.Post = {
+            uuid,
+            uri: evt.uri.toString(),
+            authorDid: evt.did,
+            body: record.body,
+            title: record.title,
+            createdAt: record.createdAt,
+            indexedAt: now.toISOString(),
+          };
+
           await db
             .insert(schema.post)
-            .values({
-              uri: evt.uri.toString(),
-              uuid,
-              authorDid: evt.did,
-              body: record.body,
-              createdAt: record.createdAt,
-              indexedAt: now.toISOString(),
-            })
+            .values(newPost)
             .onConflictDoUpdate({
               target: schema.post.uri,
               set: {
